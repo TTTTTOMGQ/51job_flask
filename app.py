@@ -34,7 +34,7 @@ def home():  # put application's code here
 
 @app.route('/tables.html')
 def table():
-    cursor = db.cursor()
+    cursor = db.cursor()######
     sql = "select job_name,company_name,salary,workarea_text,experience,education,job_href,company_href from jobstable"
     datalist = []
     cursor.execute(sql)
