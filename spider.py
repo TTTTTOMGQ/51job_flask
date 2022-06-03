@@ -55,7 +55,7 @@ db = MySQLdb.connect("localhost", "root", "123456", "51jobs", charset='utf8')
 
 
 def main():
-    with open('keyword.txt', 'r') as f:
+    with open('keyword.txt', 'r', encoding='UTF-8') as f:
         klist = json.load(f)
     # html = askURL('https://search.51job.com/list/000000,000000,0000,01,3,99,%25E5%25BC%2580%25E5%258F%2591,2,1.html')   #开发关键词
     # html = askURL('https://jobs.51job.com/shanghai/139778546.html')
@@ -84,30 +84,26 @@ def askURL(url):
     # 模拟浏览器头部信息,向豆瓣服务器发送消息
     head = {
         # 'Accept-encoding':'gzip',
-        # "acw_sc__v2":"",
+        "acw_sc__v2":"2f624a4316541475054072307e705699de6bf1cd2ac9a9fd31d038f3084db9",
         "cookie": "",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36"}  # 用户代理
+        # "sec-ch-ua-platform": "Windows",
+        "User-Agent": ""}  # 用户代理
     request = urllib.request.Request(url, headers=head)
     html = ""
     try:
         response = urllib.request.urlopen(request)
         if response.getheader('Content-Encoding') == 'gzip':
-            # print(response.getheader('Content-Encoding'))
             '''如果是详情页则先解压缩解密再二次请求'''
             content = zlib.decompress(response.read(), 32 + zlib.MAX_WBITS).decode()
-            # print(str(content))
             arg1 = re.findall("arg1='(\S+)'", str(content))[0]
             node = execjs.get()
             ctx = node.compile(js)
             arg2 = ctx.call("getAcwScV2", arg1)
             head["cookie"] = 'acw_sc__v2=' + arg2
-            # todo
             head['acw_tc'] = '76b20fef16524218174844287e26d5'
             request = urllib.request.Request(url, headers=head)
             response = urllib.request.urlopen(request)
             html = response.read().decode('gbk')
-            # print(html)
         else:
             html = response.read().decode('gbk')
             # print(html)
@@ -117,6 +113,8 @@ def askURL(url):
         if hasattr(e, "reason"):
             print(e.reason)
         html = ''
+    except IOError as io:
+        print(io)
     return html
 
 
@@ -130,8 +128,8 @@ def select_data(html, joblist):
     for index in json_data['engine_jds']:
         print(index['job_href'])
         job_msg = str(select_page_data(index['job_href']))
-        if len(index['attribute_text']) == 2 :
-            if index['attribute_text'][1].find('经验')!=-1:
+        if len(index['attribute_text']) == 2:
+            if index['attribute_text'][1].find('经验') != -1:
                 education = ''
                 experience = index['attribute_text'][1]
             else:
@@ -179,7 +177,7 @@ def select_page_data(job_href):
                                                                                                                '')
     # print(type(job_msg))
     # print(job_msg)
-    time.sleep(2)
+    time.sleep(15)
     return job_msg
 
 

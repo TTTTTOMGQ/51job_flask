@@ -28,7 +28,7 @@ def welf(data):
     plt.savefig(r'img/welf.jpg', dpi=800)
 def msg(data):
     stopwords = set()
-    content = [line.strip() for line in open('templates/stopword.txt','r').readlines()]
+    content = [line.strip() for line in open('templates/stopword.txt', 'r').readlines()]
     stopwords.update(content)
     text = ""
     for item in data:

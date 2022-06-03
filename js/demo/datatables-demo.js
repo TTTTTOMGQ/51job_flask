@@ -97,4 +97,5 @@ $(document).ready(function () {
     $('input.column_filter').on('keyup click', function () {
         filterColumn($(this).parents('tr').attr('data-column'));
     });
+    table.columns( 3 ).search(kw,true,false).draw();
 });

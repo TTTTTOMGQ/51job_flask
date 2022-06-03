@@ -10,32 +10,36 @@ db = MySQLdb.connect("localhost", "root", "123456", "51jobs", charset='utf8')
 @app.route('/')
 def index():  # put application's code here
     cursor = db.cursor()
-    sql ='select count(*) from jobstable'
+    sql ='select count(*) from jobstable;'
     cursor.execute(sql)
     count = cursor.fetchall()[0][0]
     # print(data)
-    sql = "select round(avg((substring_index(salary,'-',1)+substring_index(substring_index(salary,'-',-1),'万',1))/2*10000),1) from jobstable"
+    sql = "select round(avg((substring_index(salary,'-',1)+substring_index(substring_index(salary,'-',-1),'万',1))/2*10000),1) from jobstable;"
     cursor.execute(sql)
     avg=cursor.fetchall()[0][0]
     # print(avg)
-    sql = "select count(*) from (select substring_index(workarea_text,'-',1)  from jobstable group by substring_index(workarea_text,'-',1))s"
+    sql = "select count(*) from (select substring_index(workarea_text,'-',1)  from jobstable group by substring_index(workarea_text,'-',1))s;"
     cursor.execute(sql)
     countcity=cursor.fetchall()[0][0]
     # print(countcity)
-    sql = "select count(*) from (select company_name from jobstable group by company_name)a"
+    sql = "select count(*) from (select company_name from jobstable group by company_name)a;"
     cursor.execute(sql)
     countcom=cursor.fetchall()[0][0]
     # print(com)
-    return render_template('index.html', count=count,avg=avg,countcity=countcity,countcom=countcom)
+    return render_template('index.html', count=count, avg=avg, countcity=countcity,countcom=countcom)
 
 @app.route('/index.html')
 def home():  # put application's code here
     return index()
 
-@app.route('/tables.html')
+@app.route('/tables.html', methods=['POST', 'GET'])
 def table():
+    kw = ''
+    if request.args.get('kw') != None:
+        kw = request.args.get('kw')
+        print(kw)
     cursor = db.cursor()
-    sql = "select job_name,company_name,salary,workarea_text,experience,education,job_href,company_href from jobstable"
+    sql = "select job_name,company_name,salary,workarea_text,experience,education,job_href,company_href from jobstable limit 0,500"
     datalist = []
     cursor.execute(sql)
     joblist = cursor.fetchall()
@@ -43,7 +47,7 @@ def table():
     for i in joblist:
         datalist.append(i)
     cursor.close()
-    return render_template('tables.html', datalist=datalist)
+    return render_template('tables.html', datalist=datalist, kw=kw)
 
 @app.route('/map.html', methods=['POST', 'GET'])
 def map():

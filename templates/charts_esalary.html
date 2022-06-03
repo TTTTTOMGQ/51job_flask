@@ -127,7 +127,7 @@
             <div class="container-fluid">
 
                 <!-- Page Heading -->
-                <h1 class="h3 mb-2 text-gray-800">工作经验及学历饼图</h1>
+                <h1 class="h3 mb-2 text-gray-800">工作经验及学历</h1>
 
 
                 <!-- Content Row -->
@@ -239,6 +239,11 @@
     option = {
         xAxis: {
             type: 'category',
+            axisLabel: {
+                //x轴文字的配置
+                show: true,
+                interval: 0,//使x轴文字显示全
+            },
             data: {{ exp|tojson }}
         },
         yAxis: {
@@ -267,6 +272,11 @@
     option = {
         xAxis: {
             type: 'category',
+            axisLabel: {
+                //x轴文字的配置
+                show: true,
+                interval: 0,//使x轴文字显示全
+            },
             data: {{ edu|tojson }}
         },
         yAxis: {
