@@ -30,7 +30,7 @@ def index():  # put application's code here
 
 @app.route('/index.html')
 def home():  # put application's code here
-    return index()
+    return index()90
 
 @app.route('/tables.html', methods=['POST', 'GET'])
 def table():
