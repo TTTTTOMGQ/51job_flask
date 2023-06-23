@@ -1,10 +1,10 @@
 # -*- codeing = utf-8 -*-
-import MySQLdb
 import jieba
-from matplotlib import pyplot as plt    #绘图
-from wordcloud import WordCloud         #词云
-from PIL import Image                   #图片处理
-import numpy as np                      #矩阵运算
+from matplotlib import pyplot as plt  # 绘图
+from wordcloud import WordCloud  # 词云
+from PIL import Image  # 图片处理
+import numpy as np  # 矩阵运算
+
 
 def welf(data):
     lis = []
@@ -26,6 +26,8 @@ def welf(data):
     plt.imshow(wc)
     plt.axis('off')
     plt.savefig(r'img/welf.jpg', dpi=800)
+
+
 def msg(data):
     stopwords = set()
     content = [line.strip() for line in open('templates/stopword.txt', 'r').readlines()]

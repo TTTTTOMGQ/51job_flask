@@ -1,36 +1,42 @@
+import gzip
+import pickle
+import redis
+
 import MySQLdb
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, make_response
 
 import wcprocess
 
 app = Flask(__name__, static_folder='', static_url_path='')
+app.config['JSON_AS_ASCII'] = False
 db = MySQLdb.connect("localhost", "root", "123456", "51jobs", charset='utf8')
+
+r = redis.Redis(host='localhost', port=6379, db=0) or None
+
 
 
 @app.route('/')
 def index():  # put application's code here
     cursor = db.cursor()
-    sql ='select count(*) from jobstable;'
+    sql = 'select count(*) from jobstable;'
     cursor.execute(sql)
     count = cursor.fetchall()[0][0]
-    # print(data)
     sql = "select round(avg((substring_index(salary,'-',1)+substring_index(substring_index(salary,'-',-1),'万',1))/2*10000),1) from jobstable;"
     cursor.execute(sql)
-    avg=cursor.fetchall()[0][0]
-    # print(avg)
+    avg = cursor.fetchall()[0][0]
     sql = "select count(*) from (select substring_index(workarea_text,'-',1)  from jobstable group by substring_index(workarea_text,'-',1))s;"
     cursor.execute(sql)
-    countcity=cursor.fetchall()[0][0]
-    # print(countcity)
+    countcity = cursor.fetchall()[0][0]
     sql = "select count(*) from (select company_name from jobstable group by company_name)a;"
     cursor.execute(sql)
-    countcom=cursor.fetchall()[0][0]
-    # print(com)
-    return render_template('index.html', count=count, avg=avg, countcity=countcity,countcom=countcom)
+    countcom = cursor.fetchall()[0][0]
+    return render_template('index.html', count=count, avg=avg, countcity=countcity, countcom=countcom)
+
 
 @app.route('/index.html')
 def home():  # put application's code here
-    return index()90
+    return index()
+
 
 @app.route('/tables.html', methods=['POST', 'GET'])
 def table():
@@ -38,16 +44,8 @@ def table():
     if request.args.get('kw') != None:
         kw = request.args.get('kw')
         print(kw)
-    cursor = db.cursor()
-    sql = "select job_name,company_name,salary,workarea_text,experience,education,job_href,company_href from jobstable limit 0,500"
-    datalist = []
-    cursor.execute(sql)
-    joblist = cursor.fetchall()
-    # print(joblist)
-    for i in joblist:
-        datalist.append(i)
-    cursor.close()
-    return render_template('tables.html', datalist=datalist, kw=kw)
+    return render_template('tables.html', kw=kw)
+
 
 @app.route('/map.html', methods=['POST', 'GET'])
 def map():
@@ -68,6 +66,7 @@ def map():
     cursor.close()
     return render_template('charts_city.html', data=datalist)
 
+
 @app.route('/pie.html', methods=['POST', 'GET'])
 def pie():
     cursor = db.cursor()
@@ -77,13 +76,12 @@ def pie():
     ed_list = []
     if request.method == 'POST':
         if type(request.form.get('dkeyword')).__name__ != 'NoneType':
-            # print(type(request.form.get('pkeyword')))
             sqllist = list(d_sql)
             sqllist.insert(49,
-                           " where concat(company_name,job_name,education,salary,companyind_text,companysize_text,companytype_text,jobwelf,job_msg) like '%" + request.form.get(
+                           " where concat(company_name,job_name,education,salary,companyind_text,companysize_text,companytype_text,jobwelf,job_msg) like '%" +
+                           request.form.get(
                                'dkeyword') + "%'")
             sql = ''.join(sqllist)
-            # print(sql)
             cursor.execute(sql)
             ed_data = cursor.fetchall()
             for i in ed_data:
@@ -91,7 +89,7 @@ def pie():
                     "name": i[0],
                     "value": i[1]
                 }
-                if dit['name']=='':
+                if dit['name'] == '':
                     dit['name'] = '无学历要求'
                 ed_list.append(dit)
         else:
@@ -149,6 +147,7 @@ def pie():
     cursor.close()
     return render_template("charts_pie.html", pdata=ep_list, ddata=ed_list)
 
+
 @app.route('/csalary.html', methods=['POST', 'GET'])
 def csalary():
     cursor = db.cursor()
@@ -161,7 +160,7 @@ def csalary():
     '''
     if request.method == 'POST' and type(request.form.get('keyword')).__name__ != 'NoneType':
         sql = list(sql)
-
+        
         sql.insert(181, " where concat(job_name,education,experience) like '%" + request.form.get(
             'keyword') + "%'")
         sql = ''.join(sql)
@@ -174,6 +173,7 @@ def csalary():
         city.append(item[0])
         salary.append(item[1])
     return render_template('charts_salary.html', city=city, salary=salary)
+
 
 @app.route('/esalary.html', methods=['POST', 'GET'])
 def esalary():
@@ -190,14 +190,14 @@ def esalary():
     if request.method == 'POST':
         if type(request.form.get('dkeyword')).__name__ != 'NoneType':
             dsql = list(dsql)
-            dsql.insert(145, " where job_name like '%"+request.form.get(
-                'dkeyword')+"%'")
+            dsql.insert(145, " where job_name like '%" + request.form.get(
+                'dkeyword') + "%'")
             dsql = ''.join(dsql)
             print(dsql)
         if type(request.form.get('pkeyword')).__name__ != 'NoneType':
             psql = list(psql)
-            psql.insert(160, " where job_name like '%"+request.form.get(
-                'pkeyword')+"%'")
+            psql.insert(160, " where job_name like '%" + request.form.get(
+                'pkeyword') + "%'")
             psql = ''.join(psql)
             print(psql)
     exp = []
@@ -219,22 +219,23 @@ def esalary():
         edu.append(item[0])
         dsalary.append(item[1])
     cursor.close()
-    return render_template('charts_esalary.html', exp=exp,edu=edu, dsalary=dsalary, psalary=psalary)
+    return render_template('charts_esalary.html', exp=exp, edu=edu, dsalary=dsalary, psalary=psalary)
+
 
 @app.route('/wordcloud.html', methods=['POST', 'GET'])
 def wcpic():
     wsql = '''
     select jobwelf from jobstable
     '''
-    msql='''
+    msql = '''
     select job_msg from jobstable
     '''
     cursor = db.cursor()
     if request.method == 'POST':
         if type(request.form.get('wkeyword')).__name__ != 'NoneType':
-            wsql = wsql + " where job_name like '%"+request.form.get('wkeyword')+"%'"
+            wsql = wsql + " where job_name like '%" + request.form.get('wkeyword') + "%'"
         if type(request.form.get('mkeyword')).__name__ != 'NoneType':
-            msql = msql + " where job_name like '%"+request.form.get('mkeyword')+"%'"
+            msql = msql + " where job_name like '%" + request.form.get('mkeyword') + "%'"
         cursor.execute(wsql)
         data = cursor.fetchall()
         wcprocess.welf(data)
@@ -243,6 +244,27 @@ def wcpic():
         wcprocess.msg(data)
         cursor.close()
     return render_template('charts_wordcloud.html')
+
+
+@app.route('/datatable')
+def datatable():
+    if r.get('datatable'):
+        data = pickle.loads(r.get('datatable'))
+    else:
+        cursor = db.cursor()
+        sql = "select job_name,company_name,salary,workarea_text,experience,education,job_href,company_href from jobstable"
+        cursor.execute(sql)
+        joblist = cursor.fetchall()
+        data = jsonify(joblist)
+        try:
+            r.set('datatable', pickle.dumps(data))
+        except:
+            pass
+    response = make_response(data)
+    response.headers['Content-Encoding'] = 'gzip'
+    response.data = gzip.compress(response.data)
+    return response
+
 
 if __name__ == '__main__':
     app.run()

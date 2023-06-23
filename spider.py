@@ -1,14 +1,14 @@
 # -*- codeing = utf-8 -*-
-#!/home/ubuntu/.virtualenvs/env38 python
+# !/home/ubuntu/.virtualenvs/env38 python
 import json
 import re
 import time
 import execjs
 import zlib
-import MySQLdb
 import urllib.request, urllib.error
 from urllib import parse
 from bs4 import BeautifulSoup
+from app import db
 
 js = '''
 var _0x5e8b26 = '3000176000856006061501533003690027800375'
@@ -47,7 +47,7 @@ var getAcwScV2 = function (arg1) {
     return arg2
 };
 '''
-db = MySQLdb.connect("localhost", "root", "123456", "51jobs", charset='utf8')
+# 爬取的链接
 ''' 
     https://search.51job.com/list/000000,000000,0000,01,0,99,%25E5%25BC%2580%25E5%258F%2591,2,1.html 开发 24h
     https://search.51job.com/list/000000,000000,0000,01,0,99,%25E6%25B5%258B%25E8%25AF%2595,2,1.html 测试 24h
@@ -58,43 +58,35 @@ db = MySQLdb.connect("localhost", "root", "123456", "51jobs", charset='utf8')
 def main():
     with open('keyword.txt', 'r', encoding='UTF-8') as f:
         klist = json.load(f)
-    # html = askURL('https://search.51job.com/list/000000,000000,0000,01,3,99,%25E5%25BC%2580%25E5%258F%2591,2,1.html')   #开发关键词
+    # html = askURL('https://search.51job.com/list/000000,000000,0000,01,3,99,%25E5%25BC%2580%25E5%258F%2591,2,1.html')
+    # 开发关键词
     # html = askURL('https://jobs.51job.com/shanghai/139778546.html')
     search_link = 'https://search.51job.com/list/000000,000000,0000,01,0,99,'
     init_database()
-
+    
     for item in klist['keyword']:
         i = 1
-        # print(item)
         while (i < klist['page'] + 1):
             url = search_link + parse.quote(parse.quote(item)) + ',2,' + str(i) + '.html'
             print(url)
             joblist = []
             select_data(askURL(url), joblist)
             save_data(joblist)
-            # print(url)
             i += 1
-    # select_page_data()
-
-    # select_data()
-    # save_data()
-    # print(html)
 
 
 def askURL(url):
-    # 模拟浏览器头部信息,向豆瓣服务器发送消息
+    # 模拟浏览器头部信息,向服务器发送消息
     head = {
-        # 'Accept-encoding':'gzip',
-        "acw_sc__v2":"2f624a4316541475054072307e705699de6bf1cd2ac9a9fd31d038f3084db9",
+        "acw_sc__v2": "2f624a4316541475054072307e705699de6bf1cd2ac9a9fd31d038f3084db9",
         "cookie": "",
-        # "sec-ch-ua-platform": "Windows",
         "User-Agent": ""}  # 用户代理
     request = urllib.request.Request(url, headers=head)
     html = ""
     try:
         response = urllib.request.urlopen(request)
         if response.getheader('Content-Encoding') == 'gzip':
-            '''如果是详情页则先解压缩解密再二次请求'''
+            # 如果是详情页则先解压缩解密再二次请求
             content = zlib.decompress(response.read(), 32 + zlib.MAX_WBITS).decode()
             arg1 = re.findall("arg1='(\S+)'", str(content))[0]
             node = execjs.get()
@@ -107,7 +99,6 @@ def askURL(url):
             html = response.read().decode('gbk')
         else:
             html = response.read().decode('gbk')
-            # print(html)
     except urllib.error.URLError as e:
         if hasattr(e, "code"):
             print(e.code)
@@ -122,10 +113,7 @@ def askURL(url):
 def select_data(html, joblist):
     # html = open("./testHtml/joblist.html", "rb").read().decode('gbk')
     html_data = re.findall('window.__SEARCH_RESULT__ = (.*?)</script>', html)[0]
-    # print(html_data)
     json_data = json.loads(html_data)
-    # pprint.pprint(json_data['engine_jds'])
-    # pprint.pprint(json_data)
     for index in json_data['engine_jds']:
         print(index['job_href'])
         job_msg = str(select_page_data(index['job_href']))
@@ -159,10 +147,7 @@ def select_data(html, joblist):
             '工作福利': '|'.join(index['jobwelf_list']),
             '详细信息': job_msg
         }
-        # pprint.pprint(dit)
-        # print(dit)
         joblist.append(dit)
-        # print()
 
 
 def select_page_data(job_href):
@@ -172,12 +157,9 @@ def select_page_data(job_href):
     except:
         job_msg = '岗位已丢失'
         return job_msg
-    # print(html)
     bs = BeautifulSoup(html, 'html.parser')
     job_msg = bs.select('.tBorderTop_box > .bmsg')[0].text.strip().replace('\r', '').replace('\n', '').replace('\xa0',
                                                                                                                '')
-    # print(type(job_msg))
-    # print(job_msg)
     time.sleep(15)
     return job_msg
 
@@ -210,9 +192,36 @@ def init_database():
 def save_data(joblist):
     cursor = db.cursor()
     cursor.executemany("""
-    INSERT IGNORE INTO jobstable (jobid, job_name,company_name,workarea_text,experience,education,salary,companyind_text,companysize_text,companytype_text,issuedate,company_href,job_href,jobwelf,job_msg)
-    VALUES (%(jobid)s, %(标题)s, %(公司名字)s, %(城市)s, %(经验要求)s, %(学历要求)s, %(薪资)s, %(公司属性)s, %(公司规模)s, %(企业性质)s, %(招聘发布日期)s, %(公司详情页)s, %(招聘详情页)s, %(工作福利)s, %(详细信息)s)""",
-                       joblist)
+    INSERT IGNORE INTO
+    jobstable (jobid,
+    job_name,
+    company_name,
+    workarea_text,
+    experience,
+    education,
+    salary,
+    companyind_text,
+    companysize_text,
+    companytype_text,
+    issuedate,
+    company_href,
+    job_href,
+    jobwelf,
+    job_msg)
+    VALUES
+    (%(jobid)s,
+    %(标题)s, %(公司名字)s,
+    %(城市)s, %(经验要求)s,
+    %(学历要求)s,
+    %(薪资)s,
+    %(公司属性)s,
+    %(公司规模)s,
+    %(企业性质)s,
+    %(招聘发布日期)s,
+    %(公司详情页)s,
+    %(招聘详情页)s,
+    %(工作福利)s,
+    %(详细信息)s)""", joblist)
     db.commit()
 
 
@@ -223,7 +232,6 @@ def format_data():
     result = cursor.fetchall()
     try:
         for i in result:
-            # print('0.'+i[1][:1]+'-0.'+i[1][2:3]+'万/月')
             salary = '0.' + i[1][:1] + '-0.' + i[1][2:3] + '万/月'
             update = "update jobstable set salary='%s' where jobid='%s'" % (salary, i[0])
             cursor.execute(update)
@@ -231,7 +239,6 @@ def format_data():
     except Exception as e:
         print(e)
         db.rollback()
-    # print(result)
     sql = "select jobid,salary from jobstable where salary like '%年%';"
     cursor.execute(sql)
     result = cursor.fetchall()
@@ -243,7 +250,6 @@ def format_data():
             update = "update jobstable set salary='%s' where jobid='%s'" % (salary, i[0])
             cursor.execute(update)
             db.commit()
-            # print(salary)
     except Exception as e:
         print(e)
     cursor.close()
@@ -252,8 +258,6 @@ def format_data():
 if __name__ == '__main__':
     start = time.time()
     main()
-    # format_data()
-    # save_data()
     end = time.time()
     db.close()
     print(end - start)

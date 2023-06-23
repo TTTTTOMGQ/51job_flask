@@ -17,7 +17,13 @@ function filterColumn(i) {
 
 $(document).ready(function () {
     var table = $('#dataTable').DataTable({
+        ajax:{
+            url: '/datatable',
+            dataSrc:''
+        },
+        // serverSide: true,
         // "bLengthChange": false,
+        // ajax:'/datatable',
         "bInfo": false,
         "bAutoWidth": true,
         // "paging":   false,
